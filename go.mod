@@ -13,7 +13,7 @@ require (
 	go.uber.org/zap v1.21.0
 	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
 	google.golang.org/genproto v0.0.0-20220519153652-3a47de7e79bd
-	google.golang.org/grpc v1.46.2
+	google.golang.org/grpc v1.49.0
 	google.golang.org/protobuf v1.28.0
 )
 
@@ -35,6 +35,4 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 )
 
-require (
-	github.com/google/gofuzz v1.2.0
-)
+require github.com/google/gofuzz v1.2.0
