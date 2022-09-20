@@ -8,5 +8,6 @@ RUN go mod download
 
 COPY . .
 RUN go build -o /usr/bin/authority ./services/authority
+RUN go test ./services/authority
 
 CMD ["/usr/bin/authority"]

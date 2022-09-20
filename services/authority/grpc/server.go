@@ -68,7 +68,7 @@ func (s *server) Signin(ctx context.Context, req *proto.SigninRequest) (*proto.S
 		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
 	}
 
-	token, err := createAccessToken(res.GetCustomer().Id)
+	token, err := CreateAccessToken(res.GetCustomer().Id)
 	if err != nil {
 		s.log(ctx).Error(err, "failed to create the access token")
 		return nil, status.Error(codes.Internal, "failed to create access token")
@@ -108,7 +108,7 @@ func (s *server) ListPublicKeys(ctx context.Context, _ *proto.ListPublicKeysRequ
 	return &proto.ListPublicKeysResponse{Jwks: string(buf)}, nil
 }
 
-func createAccessToken(sub string) ([]byte, error) {
+func CreateAccessToken(sub string) ([]byte, error) {
 	token := jwt.New()
 
 	if err := token.Set(jwt.IssuerKey, issuer); err != nil {

@@ -70,7 +70,7 @@ cluster: $(KIND) $(KUBECTL) $(ISTIOCTL)
 		--namespace ingress-nginx \
 		--for=condition=ready pod \
 		--selector=app.kubernetes.io/component=controller \
-		--timeout=90s
+		--timeout=180s
 	$(KUBECTL_CMD) apply --filename ./platform/kiali/kiali.yaml
 	$(KUBECTL_CMD) apply --filename ./platform/kiali/prometheus.yaml
 	sleep 5

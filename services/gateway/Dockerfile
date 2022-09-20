@@ -8,5 +8,6 @@ RUN go mod download
 
 COPY . .
 RUN go build -o /usr/bin/gateway ./services/gateway
+RUN go test ./services/catalog
 
 CMD ["/usr/bin/gateway"]

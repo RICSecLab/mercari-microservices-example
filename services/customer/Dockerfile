@@ -8,5 +8,6 @@ RUN go mod download
 
 COPY . .
 RUN go build -o /usr/bin/customer ./services/customer
+RUN go test ./services/catalog
 
 CMD ["/usr/bin/customer"]
