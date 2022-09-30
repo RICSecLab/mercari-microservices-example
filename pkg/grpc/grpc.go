@@ -48,12 +48,12 @@ func NewServer(port int, logger logr.Logger, register func(server *grpc.Server))
 	}
 }
 
-func (s *Server) Start(ctx context.Context) error {
+func (s *Server) Start(ctx context.Context, runningAt *string) error {
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", s.port))
 	if err != nil {
 		return fmt.Errorf("failed to listen on port %d: %w", s.port, err)
 	}
-
+        *runningAt = listener.Addr().String()
 	errCh := make(chan error, 1)
 	go func() {
 		if err := s.server.Serve(listener); err != nil {

@@ -32,8 +32,9 @@ func run(ctx context.Context) int {
 	clogger := l.WithName("customer")
 
 	errCh := make(chan error, 1)
+	runningAt := ""
 	go func() {
-		errCh <- grpc.RunServer(ctx, 5000, clogger.WithName("grpc"))
+		errCh <- grpc.RunServer(ctx, 5000, clogger.WithName("grpc"), "db.db.svc.cluster.local:5000", &runningAt )
 	}()
 
 	select {

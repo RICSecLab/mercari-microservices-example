@@ -30,10 +30,10 @@ func run(ctx context.Context) int {
 		return 1
 	}
 	alogger := l.WithName("authority")
-
+        runningAt := ""
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- grpc.RunServer(ctx, 5000, alogger.WithName("grpc"))
+		errCh <- grpc.RunServer(ctx, 5000, alogger.WithName("grpc"),&runningAt)
 	}()
 
 	select {

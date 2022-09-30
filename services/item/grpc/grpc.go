@@ -12,7 +12,7 @@ import (
 	"github.com/mercari/mercari-microservices-example/services/item/proto"
 )
 
-func RunServer(ctx context.Context, port int, logger logr.Logger) error {
+func RunServer(ctx context.Context, port int, logger logr.Logger,runningAt *string) error {
 	opts := []grpc.DialOption{
 		grpc.WithInsecure(),
 		grpc.WithBlock(),
@@ -32,5 +32,5 @@ func RunServer(ctx context.Context, port int, logger logr.Logger) error {
 
 	return pkggrpc.NewServer(port, logger, func(s *grpc.Server) {
 		proto.RegisterItemServiceServer(s, svc)
-	}).Start(ctx)
+	}).Start(ctx,runningAt)
 }
