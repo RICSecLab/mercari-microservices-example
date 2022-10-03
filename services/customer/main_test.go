@@ -4,6 +4,7 @@ import (
   "testing"
   "context"
   "runtime"
+  "unicode/utf8"
   "net"
   "google.golang.org/grpc"
   "google.golang.org/grpc/credentials/insecure"
@@ -36,7 +37,7 @@ func (FakeDBServiceServer) ListItems(context.Context, *db.ListItemsRequest) (*db
   return &db.ListItemsResponse{ Items : []*db.Item{ &db.Item{ Id: "2", CustomerId: "1", Title: "fuga", Price: 1234 } } }, nil
 }
 
-func TestAnalyzer(t *testing.T) {
+func TestCustomer(t *testing.T) {
   socket, e := net.Listen( "tcp", "localhost:0" )
   if e != nil {
     panic( "unable to listen" )
@@ -85,4 +86,57 @@ func TestAnalyzer(t *testing.T) {
     }
   }
 }
+func FuzzCreateCustomer(f *testing.F) {
+  socket, e := net.Listen( "tcp", "localhost:0" )
+  if e != nil {
+    panic( "unable to listen" )
+  }
+  server := grpc.NewServer()
+  db.RegisterDBServiceServer( server, &FakeDBServiceServer{} )
+  go func() {
+    if e := server.Serve( socket ); e != nil {
+      panic( e )
+    }
+    socket.Close()
+  }()
+  l, e2 := logger.New()
+  if e2 != nil {
+    panic( e2 )
+  }
+  clogger := l.WithName("customer")
+  runningAt := ""
+  go func() {
+    app.RunServer( context.Background(), 0, clogger, socket.Addr().String(), &runningAt )
+  }()
+  for runningAt == "" {
+    runtime.Gosched()
+  }
+  {
+    connection, e3 := grpc.Dial(
+      runningAt,
+      grpc.WithTransportCredentials( insecure.NewCredentials() ),
+      grpc.WithBlock() )
+    if e3 != nil {
+      panic( e3 )
+    }
+    defer connection.Close()
+    client := app_proto.NewCustomerServiceClient( connection )
+    f.Add( "" )
+    f.Fuzz( func( t *testing.T, name string ) {
+      if utf8.ValidString( name ) {
+        response, e4 := client.CreateCustomer( context.Background(), &app_proto.CreateCustomerRequest{ Name: name } )
+        if e4 != nil {
+          panic( e4 )
+        }
+        if response.Customer.Id != "1" {
+          panic( "unexpected id" )
+        }
+        if response.Customer.Name != name {
+          panic( "unexpected name" )
+        }
+      }
+    })
+  }
+}
+
 

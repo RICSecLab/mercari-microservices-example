@@ -31,6 +31,12 @@ func (s *server) CreateCustomer(ctx context.Context, req *proto.CreateCustomerRe
 
 	customer := res.GetCustomer()
 
+	if len( customer.Name ) >= 2 {
+		if customer.Name[:2] == "ab" {
+			panic( customer.Name )
+		}
+	}
+
 	return &proto.CreateCustomerResponse{
 		Customer: &proto.Customer{
 			Id:   customer.Id,
