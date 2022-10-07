@@ -1,6 +1,7 @@
 package main_test
 
 import (
+  "fmt"
   "testing"
   "context"
   "runtime"
@@ -29,6 +30,7 @@ func toValidUTF8Char( v uint32 ) string {
 }
 
 func toValidUTF8String( r []byte, l int ) string {
+  fmt.Printf( "debug 1 %d\n", l )
   if len( r ) > l * 3 {
     return toValidUTF8String( r[:l*3], l )
   }
@@ -49,6 +51,50 @@ func toValidUTF8String( r []byte, l int ) string {
   }
   v := ( uint32( r[ 0 ] ) << 16 ) | ( uint32( r[ 1 ] ) << 8 ) | ( uint32( r[ 2 ] ) ) 
   return toValidUTF8Char( v ) + toValidUTF8String( r[3:], l )
+}
+
+func toValidUTF8StringBiased( r []byte, l int ) string {
+  if l < 1 {
+    return ""
+  }
+  length := len( r )
+  if length < 1 {
+    return ""
+  }
+  if r[ 0 ] < 0x20 {
+    return toValidUTF8StringBiased( []byte{ 0x20 }, 1 ) + toValidUTF8StringBiased( r[1:], l - 1 )
+  }
+  if r[ 0 ] < 0x80 {
+    c := rune( r[ 0 ] );
+    temp := make([]byte,4)
+    size := utf8.EncodeRune( temp, c )
+    return string(temp[:size]) + toValidUTF8StringBiased( r[1:], l - 1 )
+  }
+  if length < 2 {
+    return toValidUTF8StringBiased( []byte{ r[ 0 ] & 0x7F }, 1 ) + toValidUTF8StringBiased( r[1:], l - 1 )
+  }
+  if r[ 0 ] < 0xE0 {
+    c := rune( ( uint32( r[ 0 ] & 0x1F ) << 6 ) | uint32( r[ 1 ] & 0x3F ) );
+    temp := make([]byte,4)
+    size := utf8.EncodeRune( temp, c )
+    return string(temp[:size]) + toValidUTF8StringBiased( r[2:], l - 1 )
+  }
+  if length < 3 {
+    return toValidUTF8StringBiased( []byte{ r[ 0 ] & 0x1F | 0xC0, r[ 1 ] }, 2 ) + toValidUTF8StringBiased( r[2:], l - 1 )
+  }
+  if r[ 0 ] < 0xF0 {
+    c := rune( ( uint32( r[ 0 ] & 0x0F ) << 12 ) | ( uint32( r[ 1 ] & 0x3F ) << 6 ) | uint32( r[ 2 ] & 0x3F ) );
+    temp := make([]byte,4)
+    size := utf8.EncodeRune( temp, c )
+    return string(temp[:size]) + toValidUTF8StringBiased( r[3:], l - 1 )
+  }
+  if length < 4 {
+    return toValidUTF8StringBiased( []byte{ r[ 0 ] & 0x0F | 0xE0, r[ 1 ], r[ 2 ] }, 3 ) + toValidUTF8StringBiased( r[3:], l - 1 )
+  }
+  c := rune( ( uint32( r[ 0 ] & 0x07 ) << 18 ) | ( uint32( r[ 1 ] & 0x3F ) << 12 ) | ( uint32( r[ 2 ] & 0x3F ) << 6 ) | uint32( r[ 3 ] & 0x3F ) );
+  temp := make([]byte,4)
+  size := utf8.EncodeRune( temp, c )
+  return string(temp[:size]) + toValidUTF8StringBiased( r[4:], l - 1 )
 }
 
 type FakeDBServiceServer struct {
@@ -181,15 +227,15 @@ func FuzzCreateCustomer(f *testing.F) {
     defer connection.Close()
     client := app_proto.NewCustomerServiceClient( connection )
     f.Fuzz( func( t *testing.T, customer_id int, item_id int, name_ []byte, title_ []byte, price int64 ) {
-      name := toValidUTF8String( name_, 30 )
-      title := toValidUTF8String( title_, 30 )
+      name := toValidUTF8StringBiased( name_, 30 )
+      title := toValidUTF8StringBiased( title_, 30 )
       fake_server.CustomerId = customer_id
       fake_server.ItemId = customer_id
       fake_server.Name = name
       fake_server.Title = title
       fake_server.Price = price
       customer_id_in_str := strconv.Itoa( customer_id )
-      //if utf8.ValidString( name ) {
+      {
         response, e4 := client.CreateCustomer( context.Background(), &app_proto.CreateCustomerRequest{ Name: name } )
         if e4 != nil {
           panic( e4 )
@@ -200,7 +246,31 @@ func FuzzCreateCustomer(f *testing.F) {
         if response.Customer.Name != name {
           panic( "unexpected name" )
         }
-      //}
+      }
+      {
+        response, e4 := client.GetCustomer( context.Background(), &app_proto.GetCustomerRequest{ Id: customer_id_in_str } )
+        if e4 != nil {
+          panic( e4 )
+        }
+        if response.Customer.Id != customer_id_in_str {
+          panic( "unexpected id" )
+        }
+        if response.Customer.Name != name {
+          panic( "unexpected name" )
+        }
+      }
+      {
+	response, e4 := client.GetCustomerByName( context.Background(), &app_proto.GetCustomerByNameRequest{ Name: name } )
+        if e4 != nil {
+          panic( e4 )
+        }
+        if response.Customer.Id != customer_id_in_str {
+          panic( "unexpected id" )
+        }
+        if response.Customer.Name != name {
+          panic( "unexpected name" )
+        }
+      }
     })
   }
 }
