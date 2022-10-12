@@ -33,7 +33,7 @@ func run(ctx context.Context) int {
         runningAt := ""
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- grpc.RunServer(ctx, 5000, clogger.WithName("grpc"),&runningAt)
+		errCh <- grpc.RunServer(ctx, 5000, clogger.WithName("grpc"),"customer.customer.svc.cluster.local:5000","item.item.svc.cluster.local:5000",&runningAt)
 	}()
 
 	select {

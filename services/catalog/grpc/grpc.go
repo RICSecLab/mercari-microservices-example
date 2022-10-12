@@ -13,19 +13,19 @@ import (
 	item "github.com/mercari/mercari-microservices-example/services/item/proto"
 )
 
-func RunServer(ctx context.Context, port int, logger logr.Logger,runningAt *string) error {
+func RunServer(ctx context.Context, port int, logger logr.Logger, customerAddr string, itemAddr string, runningAt *string) error {
 	opts := []grpc.DialOption{
 		grpc.WithInsecure(),
 		grpc.WithBlock(),
 		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)),
 	}
 
-	cconn, err := grpc.DialContext(ctx, "customer.customer.svc.cluster.local:5000", opts...)
+	cconn, err := grpc.DialContext(ctx, customerAddr, opts...)
 	if err != nil {
 		return fmt.Errorf("failed to dial customer grpc server: %w", err)
 	}
 
-	iconn, err := grpc.DialContext(ctx, "item.item.svc.cluster.local:5000", opts...)
+	iconn, err := grpc.DialContext(ctx, itemAddr, opts...)
 	if err != nil {
 		return fmt.Errorf("failed to dial item grpc server: %w", err)
 	}
