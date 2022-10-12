@@ -114,7 +114,7 @@ func FuzzCreateCustomer(f *testing.F) {
       name := test_utils.ToValidUTF8StringBiased( name_, 30 )
       title := test_utils.ToValidUTF8StringBiased( title_, 30 )
       fake_server.CustomerId = customer_id
-      fake_server.ItemId = customer_id
+      fake_server.ItemId = item_id
       fake_server.Name = name
       fake_server.Title = title
       fake_server.Price = price
