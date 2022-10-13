@@ -28,8 +28,9 @@ func server(ctx context.Context) int {
 	glogger := l.WithName("gateway")
 
 	httpErrCh := make(chan error, 1)
+        runningAt := ""
 	go func() {
-		httpErrCh <- http.RunServer(ctx, 4000)
+		httpErrCh <- http.RunServer(ctx, 4000, "authority.authority.svc.cluster.local:5000", "catalog.catalog.svc.cluster.local:5000", &runningAt )
 	}()
 
 	select {

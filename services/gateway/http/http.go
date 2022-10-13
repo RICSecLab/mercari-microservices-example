@@ -1,6 +1,7 @@
 package http
 
 import (
+	"net"
 	"context"
 	"errors"
 	"fmt"
@@ -14,7 +15,7 @@ import (
 	catalogpb "github.com/mercari/mercari-microservices-example/services/catalog/proto"
 )
 
-func RunServer(ctx context.Context, port int) error {
+func RunServer(ctx context.Context, port int, authorityAddr string, catalogAddr string, runningAt *string ) error {
 	mux := runtime.NewServeMux(
 		runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.HTTPBodyMarshaler{
 			Marshaler: &runtime.JSONPb{
@@ -35,12 +36,7 @@ func RunServer(ctx context.Context, port int) error {
 		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)),
 	}
 
-	server := http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
-		Handler: mux,
-	}
-
-	authorityConn, err := grpc.DialContext(ctx, "authority.authority.svc.cluster.local:5000", opts...)
+	authorityConn, err := grpc.DialContext(ctx, authorityAddr, opts...)
 	if err != nil {
 		return fmt.Errorf("failed to dial to authority grpc server: %w", err)
 	}
@@ -48,26 +44,30 @@ func RunServer(ctx context.Context, port int) error {
 		return fmt.Errorf("failed to create a authority grpc client: %w", err)
 	}
 
-	catalogConn, err := grpc.DialContext(ctx, "catalog.catalog.svc.cluster.local:5000", opts...)
+	catalogConn, err := grpc.DialContext(ctx, catalogAddr, opts...)
 	if err != nil {
 		return fmt.Errorf("failed to dial to catalog grpc server: %w", err)
 	}
 	if err := catalogpb.RegisterCatalogServiceHandlerClient(ctx, mux, catalogpb.NewCatalogServiceClient(catalogConn)); err != nil {
 		return fmt.Errorf("failed to create a catalog grpc client: %w", err)
 	}
+	
+
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- server.ListenAndServe()
+		socket, e := net.Listen("tcp", fmt.Sprintf(":%d", port) )
+		if e != nil {
+			panic( e )
+		}
+		*runningAt = socket.Addr().String()
+		errCh <- http.Serve( socket, mux )
 	}()
 
 	select {
 	case err := <-errCh:
 		return fmt.Errorf("failed to serve http server: %w", err)
 	case <-ctx.Done():
-		if err := server.Shutdown(ctx); err != nil {
-			return fmt.Errorf("failed to shutdown http server: %w", err)
-		}
 
 		if err := <-errCh; err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return fmt.Errorf("failed to close http server: %w", err)
