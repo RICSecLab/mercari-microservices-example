@@ -115,7 +115,7 @@ func FuzzAuthority(f *testing.F) {
     defer connection.Close()
     client := app_proto.NewAuthorityServiceClient( connection )
     f.Fuzz( func( t *testing.T, customer_id int, name_ []byte ) {
-      name := test_utils.ToValidUTF8StringBiased( name_, 30 )
+      name := test_utils.ToValidUTF8StringBiased( name_, 65536*65536 )
       fake_server.CustomerId = customer_id
       fake_server.Name = name
       customer_id_in_str := strconv.Itoa( customer_id )

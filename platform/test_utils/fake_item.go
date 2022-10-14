@@ -12,6 +12,7 @@ type FakeItemServiceServer struct {
   ItemId int
   Title string
   Price int64
+  Count uint64
 }
 
 func (this *FakeItemServiceServer) CreateItem( ctx context.Context, request *item.CreateItemRequest) (*item.CreateItemResponse, error) {
@@ -25,6 +26,10 @@ func (this *FakeItemServiceServer) GetItem( ctx context.Context, request *item.G
 func (this *FakeItemServiceServer) ListItems(context.Context, *item.ListItemsRequest) (*item.ListItemsResponse, error) {
   customer_id := strconv.Itoa( this.CustomerId )
   item_id := strconv.Itoa( this.ItemId )
-  return &item.ListItemsResponse{ Items : []*item.Item{ &item.Item{ Id: item_id, CustomerId: customer_id, Title: this.Title, Price: this.Price } } }, nil
+  data := []*item.Item{}
+  for i := uint64(0); i != this.Count; i++ {
+    data = append( data, &item.Item{ Id: item_id, CustomerId: customer_id, Title: this.Title, Price: this.Price } )
+  }
+  return &item.ListItemsResponse{ Items : data }, nil
 }
 

@@ -1,7 +1,6 @@
 package grpc
 
 import (
-	"fmt"
 	"bytes"
 	"context"
 
@@ -28,10 +27,13 @@ func (s *server) CreateItem(ctx context.Context, req *proto.CreateItemRequest) (
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "token not found")
 	}
-	fmt.Printf( "%s\n", tokenStr )
 	token, err := jwt.Parse(bytes.NewBufferString(tokenStr).Bytes())
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "failed to parse access token")
+	}
+
+	if len( []byte(req.Title) ) > 100 {
+	  req.Title = string([]byte(req.Title)[:100])
 	}
 
 	res, err := s.itemClient.CreateItem(ctx, &item.CreateItemRequest{

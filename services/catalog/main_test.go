@@ -1,6 +1,8 @@
 package main_test
 
 import (
+  "fmt"
+//  "bytes"
   "testing"
   "context"
   "runtime"
@@ -30,7 +32,8 @@ func TestCatalog(t *testing.T) {
     CustomerId : 1,
     ItemId : 2,
     Title : "fuga",
-    Price : 1234 } )
+    Price : 1234,
+    Count : 3 } )
   go func() {
     if e := server.Serve( socket ); e != nil {
       panic( e )
@@ -96,7 +99,8 @@ func FuzzCatalog(f *testing.F) {
     CustomerId : 1,
     ItemId : 2,
     Title : "fuga",
-    Price : 1234 }
+    Price : 1234,
+    Count : 3 }
   item.RegisterItemServiceServer( server, fake_item_server )
   go func() {
     if e := server.Serve( socket ); e != nil {
@@ -126,71 +130,77 @@ func FuzzCatalog(f *testing.F) {
     }
     defer connection.Close()
     client := app_proto.NewCatalogServiceClient( connection )
-    f.Fuzz( func( t *testing.T, customer_id int, item_id int, name_ []byte, title_ []byte, price int64 ) {
-      name := test_utils.ToValidUTF8StringBiased( name_, 30 )
-      title := test_utils.ToValidUTF8StringBiased( title_, 30 )
+    f.Fuzz( func( t *testing.T, customer_id int, item_id int, name_ []byte, title_ []byte, price int64, count uint64 ) {
+      name := test_utils.ToValidUTF8StringBiased( name_, 1000 )
+      title := test_utils.ToValidUTF8StringBiased( title_, 1000 )
+      count = count % 10
       fake_customer_server.CustomerId = customer_id
       fake_customer_server.Name = name
       fake_item_server.CustomerId = customer_id
       fake_item_server.ItemId = item_id
       fake_item_server.Title = title
       fake_item_server.Price = price
+      fake_item_server.Count = count
       customer_id_in_str := strconv.Itoa( customer_id )
-      md := metadata.New(map[string]string{ "authorization": "bearer "+test_utils.GetAccessToken( customer_id ) })
-      ctx := metadata.NewOutgoingContext( context.Background(), md )
-      item_id_in_str := strconv.Itoa( item_id )
       {
-        response, e4 := client.CreateItem( ctx, &app_proto.CreateItemRequest{ Title : title, Price : price } )
-        if e4 != nil {
-          panic( e4 )
+        md := metadata.New(map[string]string{ "authorization": "bearer "+test_utils.GetAccessToken( customer_id ) })
+        ctx := metadata.NewOutgoingContext( context.Background(), md )
+        item_id_in_str := strconv.Itoa( item_id )
+        {
+          response, e4 := client.CreateItem( ctx, &app_proto.CreateItemRequest{ Title : title, Price : price } )
+          if e4 != nil {
+            panic( e4 )
+          }
+          if response.Item.Id != item_id_in_str {
+            panic( "unexpected item id" )
+          }
+          if response.Item.CustomerId != customer_id_in_str {
+            panic( "unexpected customer id" )
+          }
+          /*if response.Item.Title != title {
+            panic( "unexpected name" )
+          }*/
+          if response.Item.Price != price {
+            panic( "unexpected price" )
+          }
         }
-        if response.Item.Id != item_id_in_str {
-          panic( "unexpected item id" )
+        {
+          response, e4 := client.GetItem( ctx, &app_proto.GetItemRequest{ Id: item_id_in_str } )
+          if e4 != nil {
+            panic( e4 )
+          }
+          if response.Item.Id != item_id_in_str {
+            panic( "unexpected item id" )
+          }
+          if response.Item.CustomerId != customer_id_in_str {
+            panic( "unexpected customer id" )
+          }
+          if response.Item.Title != title {
+            panic( "unexpected name" )
+          }
+          if response.Item.Price != price {
+            panic( "unexpected price" )
+          }
         }
-        if response.Item.CustomerId != customer_id_in_str {
-          panic( "unexpected customer id" )
-        }
-        if response.Item.Title != title {
-          panic( "unexpected name" )
-        }
-        if response.Item.Price != price {
-          panic( "unexpected price" )
-        }
-      }
-      {
-        response, e4 := client.GetItem( ctx, &app_proto.GetItemRequest{ Id: item_id_in_str } )
-        if e4 != nil {
-          panic( e4 )
-        }
-        if response.Item.Id != item_id_in_str {
-          panic( "unexpected item id" )
-        }
-        if response.Item.CustomerId != customer_id_in_str {
-          panic( "unexpected customer id" )
-        }
-        if response.Item.Title != title {
-          panic( "unexpected name" )
-        }
-        if response.Item.Price != price {
-          panic( "unexpected price" )
-        }
-      }
-      {
-	response, e4 := client.ListItems( ctx, &app_proto.ListItemsRequest{ Id: customer_id_in_str } )
-        if e4 != nil {
-          panic( e4 )
-        }
-        if len( response.Items ) != 1 {
-          panic( "unexpected response size" )
-        }
-        if response.Items[ 0 ].Id != item_id_in_str {
-          panic( "unexpected item id" )
-        }
-        if response.Items[ 0 ].Title != title {
-          panic( "unexpected name" )
-        }
-        if response.Items[ 0 ].Price != price {
-          panic( "unexpected price" )
+        {
+          response, e4 := client.ListItems( ctx, &app_proto.ListItemsRequest{ Id: customer_id_in_str } )
+          if e4 != nil {
+            panic( e4 )
+          }
+	  if uint64( len( response.Items ) ) != count {
+            panic( fmt.Sprintf( "unexpected response size %d %d", uint64( len( response.Items ) ), count ) )
+          }
+	  if len( response.Items ) > 0 {
+            if response.Items[ 0 ].Id != item_id_in_str {
+              panic( "unexpected item id" )
+            }
+            if response.Items[ 0 ].Title != title {
+              panic( "unexpected name" )
+            }
+            if response.Items[ 0 ].Price != price {
+              panic( "unexpected price" )
+            }
+          }
         }
       }
     })

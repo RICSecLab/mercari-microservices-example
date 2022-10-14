@@ -84,3 +84,40 @@ func ToValidUTF8StringBiased( r []byte, l int ) string {
   return string(temp[:size]) + ToValidUTF8StringBiased( r[4:], l - 1 )
 }
 
+func ToValidASCIIString( r []byte, l int ) string {
+  if l < 1 {
+    return ""
+  }
+  length := len( r )
+  if length < 1 {
+    return ""
+  }
+  if ( r[ 0 ] & 0x7F ) < 0x20 {
+    return " " + ToValidASCIIString( r[1:], l - 1 )
+  }
+  return string([]byte{( r[ 0 ] & 0x7F )}) + ToValidASCIIString( r[1:], l - 1 )
+}
+
+func toValidBase64StringInternal( r []byte, l int ) string {
+  if l < 1 {
+    return ""
+  }
+  length := len( r )
+  if length < 1 {
+    return ""
+  }
+  c := r[ 0 ] & 0x3F
+  dict := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+  return string(dict[ c ]) + toValidBase64StringInternal( r[1:], l - 1 )
+}
+
+func ToValidBase64String( r []byte, l int ) string {
+  generated := toValidBase64StringInternal( r, l )
+  if ( len( generated ) - 1 ) % 3 == 1 {
+    return generated + "=="
+  }
+  if ( len( generated ) - 1 ) % 3 == 2 {
+    return generated + "="
+  }
+  return generated
+}
