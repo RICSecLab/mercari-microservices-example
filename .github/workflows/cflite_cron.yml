@@ -1,0 +1,49 @@
+name: ClusterFuzzLite cron tasks
+on:
+  schedule:
+    #- cron: '0 0/8 * * *'  # Thrice a day at 0,8,16 o'clock
+    - cron: '0 9/4 * * *'  # Testing purpose
+permissions: read-all
+jobs:
+  Pruning:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Build Fuzzers
+      id: build
+      uses: google/clusterfuzzlite/actions/build_fuzzers@v1
+      with:
+        language: go # Change this to the language you are fuzzing
+    - name: Run Fuzzers
+      id: run
+      uses: google/clusterfuzzlite/actions/run_fuzzers@v1
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        fuzz-seconds: 600
+        mode: 'prune'
+        # Optional but recommended.
+        # See later section on "Git repo for storage".
+        # storage-repo: https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/OWNER/STORAGE-REPO-NAME.git
+        # storage-repo-branch: main   # Optional. Defaults to "main"
+        # storage-repo-branch-coverage: gh-pages  # Optional. Defaults to "gh-pages".
+  Coverage:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Build Fuzzers
+      id: build
+      uses: google/clusterfuzzlite/actions/build_fuzzers@v1
+      with:
+        language: go
+        sanitizer: coverage
+    - name: Run Fuzzers
+      id: run
+      uses: google/clusterfuzzlite/actions/run_fuzzers@v1
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        fuzz-seconds: 600
+        mode: 'coverage'
+        # Optional but recommended.
+        # See later section on "Git repo for storage".
+        # storage-repo: https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/OWNER/STORAGE-REPO-NAME.git
+        # storage-repo-branch: main   # Optional. Defaults to "main"
+        # storage-repo-branch-coverage: gh-pages  # Optional. Defaults to "gh-pages".anitizer: 'coverage'
+
