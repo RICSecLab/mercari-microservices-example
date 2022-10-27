@@ -1,8 +1,7 @@
 name: ClusterFuzzLite cron tasks
 on:
   schedule:
-    #- cron: '0 0/8 * * *'  # Thrice a day at 0,8,16 o'clock
-    - cron: '0 9/4 * * *'  # Testing purpose
+    - cron: '0 3 * * *' # JST noon
 permissions: read-all
 jobs:
   Pruning:
