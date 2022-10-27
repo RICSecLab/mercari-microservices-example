@@ -1,3 +1,5 @@
+Made a slight change to trigger a PR fuzzing
+
 # Mercari Microservices Example
 
 Let's explore the Mercari-ish microservices consist of [Go](https://golang.org/), [gRPC](https://grpc.io/), [Kubernetes](https://kubernetes.io/) and [Istio](https://istio.io/) **on your laptop**!
