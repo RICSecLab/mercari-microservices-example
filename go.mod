@@ -35,6 +35,6 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 )
 
-require (
-	github.com/google/gofuzz v1.2.0
-)
+require github.com/google/gofuzz v1.2.0
+
+replace github.com/mercari/mercari-microservices-example => github.com/RICSecLab/mercari-microservices-example latest
